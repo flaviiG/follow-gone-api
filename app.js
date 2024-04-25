@@ -12,7 +12,7 @@ const globalErrorHandler = require('./controllers/errorController');
 const app = express();
 
 const corsOptions = {
-  origin: ['https://follow-gone-frontend.onrender.com', 'https://follow-gone.com/'],
+  origin: ['https://follow-gone-frontend.onrender.com', 'https://follow-gone.com'],
 };
 
 app.use(cors(corsOptions));
