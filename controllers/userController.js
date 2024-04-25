@@ -66,7 +66,7 @@ exports.deleteMe = catchAsync(async (req, res, next) => {
 exports.updateMe = catchAsync(async (req, res, next) => {
   //1) Create error if user posts password data
   if (req.body.password || req.body.passwordConfirm)
-    return next(new AppError("You cant't modify your password from here"));
+    return next(new AppError("You cant't modify your password from here", 403));
 
   // 2) filtered out fields
   const filteredBody = filterObj(req.body, 'name', 'email');
@@ -87,6 +87,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 
 exports.getFollowersList = catchAsync(async (req, res, next) => {
   const followersList = await puppeteerBrowser.runPuppeteerScript(req.user.instagramUsername);
+
+  if (!followersList) return next(new AppError('There was en error getting the followers'));
 
   await User.findByIdAndUpdate(req.user.id, { followerList: followersList });
 

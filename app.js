@@ -43,6 +43,9 @@ app.use(mongoSanitize());
 // server static files
 app.use(express.static(`${__dirname}/public`));
 
+// Enable trust proxy
+app.set('trust proxy', true);
+
 app.use('/api', limiter);
 
 app.use((req, res, next) => {
