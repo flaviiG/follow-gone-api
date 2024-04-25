@@ -11,7 +11,11 @@ const globalErrorHandler = require('./controllers/errorController');
 
 const app = express();
 
-app.use(cors());
+const corsOptions = {
+  origin: 'https://follow-gone-frontend.onrender.com',
+};
+
+app.use(cors(corsOptions));
 
 // GLOBAL Middlewares
 
