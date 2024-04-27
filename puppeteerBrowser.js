@@ -130,23 +130,23 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
 
   await page.setBypassCSP(true);
 
-  await page.goto('https://www.instagram.com/');
+  await page.goto(`https://www.instagram.com/${usernameToScrape}`);
+
+  const source = await page.content({ waitUntil: 'domcontentloaded' });
+
+  // Finding the user id in the source
+  const regex = /"profilePage_([^"]+)"/;
+  const match = source.match(regex);
+  const userToScrapeId = match ? match[1] : 'User ID not found';
+  console.log('User id:', userToScrapeId);
 
   page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
 
   let result;
   try {
-    result = await page.evaluate(async (username) => {
+    result = await page.evaluate(async (userId) => {
       // Script logic starts here
       let followers = [];
-
-      const userQueryRes = await fetch(
-        `https://www.instagram.com/web/search/topsearch/?query=${username}`,
-      );
-      const userQueryJson = await userQueryRes.json();
-      const userId = userQueryJson.users
-        .map((u) => u.user)
-        .filter((u) => u.username === username)[0].pk;
 
       let after = null;
       let has_next = true;
@@ -177,7 +177,7 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
       return {
         followers,
       };
-    }, usernameToScrape);
+    }, userToScrapeId);
   } catch (err) {
     console.log(err);
   }
