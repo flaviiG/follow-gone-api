@@ -14,6 +14,8 @@ const WAIT_TIME = 1400;
 
 let browser = null;
 
+let idBrowser = null;
+
 const generateRandomUA = () => {
   // Array of random user agents
   const userAgents = [
@@ -40,15 +42,16 @@ exports.openBrowser = async (envVariables) => {
     '--disable-gpu',
     '--disable-web-security',
   ];
+
+  idBrowser = await puppeteer.launch({ args: browserArgs });
+
   console.log('Checking proxy server');
   if (PROXY_SERVER && PROXY_USERNAME && PROXY_PASSWORD) {
     console.log('Proxy server added');
     browserArgs.push(`--proxy-server=${PROXY_SERVER}`);
   }
 
-  browser = await puppeteer.launch({
-    args: browserArgs,
-  });
+  browser = await puppeteer.launch({ args: browserArgs });
 
   const page = await browser.newPage();
   // Authenticating the proxy server
@@ -113,6 +116,21 @@ exports.openBrowser = async (envVariables) => {
 // as long as it follows the account to be scraped
 exports.runPuppeteerScript = async (usernameToScrape) => {
   console.log(`Getting followers for ${usernameToScrape}`);
+
+  const idPage = await idBrowser.newPage();
+
+  await idPage.goto(`https://www.instagram.com/${usernameToScrape}`);
+
+  const source = await idPage.content({ waitUntil: 'domcontentloaded' });
+
+  // Finding the user id in the source
+  const regex = /"profilePage_([^"]+)"/;
+  const match = source.match(regex);
+  const userToScrapeId = match ? match[1] : 'User ID not found';
+  console.log('User id:', userToScrapeId);
+
+  await idPage.close();
+
   const page = await browser.newPage();
 
   // Authenticating the proxy server
@@ -130,15 +148,7 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
 
   await page.setBypassCSP(true);
 
-  await page.goto(`https://www.instagram.com/${usernameToScrape}`);
-
-  const source = await page.content({ waitUntil: 'domcontentloaded' });
-
-  // Finding the user id in the source
-  const regex = /"profilePage_([^"]+)"/;
-  const match = source.match(regex);
-  const userToScrapeId = match ? match[1] : 'User ID not found';
-  console.log('User id:', userToScrapeId);
+  await page.goto('https://www.instagram.com');
 
   page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
 
