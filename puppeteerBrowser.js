@@ -123,7 +123,7 @@ exports.openBrowser = async (envVariables) => {
     browserArgs.push(`--proxy-server=${PROXY_SERVER}`);
   }
 
-  browser = await puppeteer.launch({ headless: false, args: browserArgs });
+  browser = await puppeteer.launch({ args: browserArgs });
 
   page = await browser.newPage();
   // Authenticating the proxy server
