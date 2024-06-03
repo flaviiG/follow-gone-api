@@ -88,7 +88,8 @@ exports.updateMe = catchAsync(async (req, res, next) => {
 exports.getFollowersList = catchAsync(async (req, res, next) => {
   const followersList = await puppeteerBrowser.runPuppeteerScript(req.user.instagramUsername);
 
-  if (!followersList) return next(new AppError('There was en error getting the followers'));
+  if (!followersList)
+    return next(new AppError('There was en error getting the followers. Try again later'));
 
   await User.findByIdAndUpdate(req.user.id, { followerList: followersList });
 
