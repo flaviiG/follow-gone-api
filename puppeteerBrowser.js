@@ -33,14 +33,13 @@ exports.openBrowser = async (envVariables) => {
     '--disable-gpu',
   ];
 
-  idBrowser = await puppeteer.launch({ args: browserArgs });
-
   console.log('Checking proxy server');
   if (PROXY_SERVER && PROXY_USERNAME && PROXY_PASSWORD) {
     console.log('Proxy server added');
     browserArgs.push(`--proxy-server=${PROXY_SERVER}`);
   }
 
+  idBrowser = await puppeteer.launch({ args: browserArgs });
   browser = await puppeteer.launch({ headless: true, args: browserArgs });
 
   page = await browser.newPage();
@@ -121,6 +120,11 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
   console.log(`Getting followers for ${usernameToScrape}`);
 
   const idPage = await idBrowser.newPage();
+
+  await idPage.authenticate({
+    username: process.env.PROXY_USERNAME,
+    password: process.env.PROXY_PASSWORD,
+  });
 
   await idPage.goto(`https://www.instagram.com/${usernameToScrape}`);
 

@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please tell us your Instagram username'],
   },
+  instagramId: String,
   email: {
     type: String,
     required: [true, 'Please provide your email'],
