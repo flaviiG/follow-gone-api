@@ -116,28 +116,7 @@ exports.openBrowser = async (envVariables) => {
   cookies = await page.cookies();
 };
 
-exports.runPuppeteerScript = async (usernameToScrape) => {
-  console.log(`Getting followers for ${usernameToScrape}`);
-
-  const idPage = await idBrowser.newPage();
-
-  await idPage.authenticate({
-    username: process.env.PROXY_USERNAME,
-    password: process.env.PROXY_PASSWORD,
-  });
-
-  await idPage.goto(`https://www.instagram.com/${usernameToScrape}`);
-
-  const source = await idPage.content({ waitUntil: 'domcontentloaded' });
-
-  // Finding the user id in the source
-  const regex = /"profilePage_([^"]+)"/;
-  const match = source.match(regex);
-  const userToScrapeId = match ? match[1] : 'User ID not found';
-  console.log('User id:', userToScrapeId);
-
-  await idPage.close();
-
+exports.runPuppeteerScript = async (instagramId) => {
   const username = process.env.OXY_USERNAME;
   const password = process.env.OXY_PASSWORD;
 
@@ -151,7 +130,7 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
   while (has_next && numTries < 3) {
     const url = `https://www.instagram.com/graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables=${encodeURIComponent(
       JSON.stringify({
-        id: userToScrapeId,
+        id: instagramId,
         include_reel: true,
         fetch_mutual: true,
         first: 50,
@@ -185,7 +164,7 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
         },
       });
 
-      console.log(response.data.results[0].content);
+      // console.log(response.data.results[0].content);
 
       // Failed to get the followers
       if (!response.data.results[0].content) {
@@ -225,14 +204,22 @@ exports.runPuppeteerScript = async (usernameToScrape) => {
   return followers;
 };
 
-// Another account can be used to scrape the followers
-// as long as it follows the account to be scraped
-exports.runPuppeteerScript2 = async (usernameToScrape) => {
-  console.log(`Getting followers for ${usernameToScrape}`);
-
+exports.getInstagramUserId = async (username) => {
   const idPage = await idBrowser.newPage();
 
-  await idPage.goto(`https://www.instagram.com/${usernameToScrape}`);
+  await idPage.authenticate({
+    username: process.env.PROXY_USERNAME,
+    password: process.env.PROXY_PASSWORD,
+  });
+
+  // Custom user agent from generateRandomUA() function
+  const customUA = helpers.generateRandomUA();
+  console.log(customUA);
+
+  // Set custom user agent
+  await idPage.setUserAgent(customUA);
+
+  await idPage.goto(`https://www.instagram.com/${username}`);
 
   const source = await idPage.content({ waitUntil: 'domcontentloaded' });
 
@@ -244,95 +231,5 @@ exports.runPuppeteerScript2 = async (usernameToScrape) => {
 
   await idPage.close();
 
-  page = await browser.newPage();
-
-  // Authenticating the proxy server
-  await page.authenticate({
-    username: process.env.PROXY_USERNAME,
-    password: process.env.PROXY_PASSWORD,
-  });
-
-  // Custom user agent from generateRandomUA() function
-  const customUA = helpers.generateRandomUA();
-  console.log(customUA);
-
-  // Set custom user agent
-  await page.setUserAgent(customUA);
-
-  await page.goto('https://instagram.com');
-
-  try {
-    const dismissButton = await page.waitForSelector('text/Dismiss', { timeout: 5000 });
-    await new Promise((r) => {
-      setTimeout(r, WAIT_TIME);
-    });
-    await dismissButton.click();
-
-    await page.waitForNavigation({ timeout: 5000 });
-  } catch (err) {
-    console.log('No dismiss button found');
-  }
-
-  let result;
-  let numTries = 0;
-  while (!result && numTries < 3) {
-    try {
-      numTries += 1;
-      result = await page.evaluate(async (userId) => {
-        // Script logic starts here
-        let followers = [];
-
-        let after = null;
-        let has_next = true;
-
-        while (has_next) {
-          const res = await fetch(
-            `https://www.instagram.com/graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables=${encodeURIComponent(
-              JSON.stringify({
-                id: userId,
-                include_reel: true,
-                fetch_mutual: true,
-                first: 50,
-                after: after,
-              }),
-            )}`,
-          );
-          const data = await res.json();
-          has_next = data.data.user.edge_followed_by.page_info.has_next_page;
-          after = data.data.user.edge_followed_by.page_info.end_cursor;
-          followers = followers.concat(
-            data.data.user.edge_followed_by.edges.map(({ node }) => ({
-              username: node.username,
-              userId: node.id,
-            })),
-          );
-        }
-        // Return the results
-        return {
-          followers,
-        };
-      }, userToScrapeId);
-    } catch (err) {
-      console.log(err);
-      await page.goto('https://instagram.com');
-
-      try {
-        const dismissButton = await page.waitForSelector('text/Dismiss', { timeout: 5000 });
-        await new Promise((r) => {
-          setTimeout(r, WAIT_TIME);
-        });
-        await dismissButton.click();
-
-        await page.waitForNavigation({ timeout: 5000 });
-      } catch (errDismiss) {
-        console.log('No dismiss button found');
-      }
-    }
-  }
-
-  await page.close();
-
-  if (!result) return null;
-
-  return result.followers;
+  return userToScrapeId;
 };
